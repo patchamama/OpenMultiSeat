@@ -1,6 +1,14 @@
-# OpenMultiSeat — servidor multi-seat universal
+<div align="center">
 
-🇬🇧 [Read in English](README.md) (versión por defecto)
+# OpenMultiSeat
+
+**Servidor multi-seat universal: una pantalla + teclado + ratón por puesto, cada uno con su propia VM, contenedor o escritorio.**
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](LICENSE) ![Status](https://img.shields.io/badge/status-active_development-orange?style=flat-square) ![Node.js 18+](https://img.shields.io/badge/Node.js_18+-339933?style=flat-square&logo=nodedotjs&logoColor=white) ![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white) ![Bash](https://img.shields.io/badge/Bash-4EAA25?style=flat-square&logo=gnubash&logoColor=white) ![PowerShell](https://img.shields.io/badge/PowerShell-5391FE?style=flat-square&logo=powershell&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white) ![WSL2](https://img.shields.io/badge/WSL2-0078D6?style=flat-square&logo=windows&logoColor=white) ![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=white)
+
+🇬🇧 [English](README.md) · [Estado actual](#estado-actual-windows--wsl) · [Hoja de ruta](#pendiente--hoja-de-ruta) · [Tecnologías](#tecnologías) · [Licencia](#licencia)
+
+</div>
 
 Asigna un **teclado y un ratón dedicados** a una sesión concreta (una VM, un navegador en modo kiosk, un escritorio…),
 de forma que esos dispositivos solo controlen esa sesión mientras el resto del equipo sigue usando los suyos.
@@ -190,6 +198,18 @@ clientes de la red con el mismo modelo de "una pantalla + un teclado + un ratón
 - [ ] Instalador/arranque elevado por plataforma y documentación de requisitos.
 - [ ] CI básica (lint + comprobación de sintaxis de `seat.sh`/`setup.sh` con `shellcheck`) y licencia del repositorio.
 - [x] Licencia GPL-3.0-or-later. Interception (licencia no comercial) solo se evalúa como opción externa: no se incluye ni se enlaza; si se adoptara, habría que revisar la compatibilidad.
+
+## Tecnologías
+
+| Área | Tecnología |
+|---|---|
+| App / API | Node.js, Express |
+| Aislamiento de entrada | usbipd-win (USB/IP), `libinput` de Linux, controlador Xorg `dummy`, `AutoAddDevices off` |
+| Sesiones del puesto | FreeRDP 3 (`xfreerdp3`), Firefox / Chrome / Edge en modo kiosco, contenedores de escritorio (XFCE, MATE, KDE, LXQt, LXDE, Openbox, IceWM, Fluxbox, JWM, i3) |
+| Pantalla | x11vnc + TigerVNC (solo lectura) mediante WSLg |
+| Ejecución | WSL2, Docker Engine, tareas programadas de Windows (se ejecutan como el usuario interactivo) |
+| Scripts | Bash (`seat.sh`, `setup.sh`), PowerShell |
+| Previsto | Raw Input (Windows), asientos de `systemd-logind` (Linux), IOKit HID (macOS), backends de Hyper-V / VirtualBox / KVM / VMware, USB/IP por red |
 
 ## Licencia
 

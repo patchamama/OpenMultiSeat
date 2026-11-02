@@ -1,6 +1,14 @@
-# OpenMultiSeat — universal multi-seat server
+<div align="center">
 
-🇪🇸 [Leer en español](README.es.md)
+# OpenMultiSeat
+
+**Universal multi-seat server: one screen + keyboard + mouse per seat, each driving its own VM, container or desktop.**
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](LICENSE) ![Status](https://img.shields.io/badge/status-active_development-orange?style=flat-square) ![Node.js 18+](https://img.shields.io/badge/Node.js_18+-339933?style=flat-square&logo=nodedotjs&logoColor=white) ![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white) ![Bash](https://img.shields.io/badge/Bash-4EAA25?style=flat-square&logo=gnubash&logoColor=white) ![PowerShell](https://img.shields.io/badge/PowerShell-5391FE?style=flat-square&logo=powershell&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white) ![WSL2](https://img.shields.io/badge/WSL2-0078D6?style=flat-square&logo=windows&logoColor=white) ![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=white)
+
+🇪🇸 [Español](README.es.md) · [Current state](#current-state-windows--wsl) · [Roadmap](#roadmap) · [Tech stack](#tech-stack) · [License](#license)
+
+</div>
 
 Assign a **dedicated keyboard and mouse** to one specific session (a VM, a kiosk browser, a desktop…) so those devices only
 control that session while the rest of the computer keeps using its own. The end goal is a **universal, independent project**
@@ -149,6 +157,18 @@ network with the same model, "one screen + one keyboard + one mouse = a separate
 - [ ] Remove the `/api/seat` routes from the original configurator once this repository is used.
 - [ ] Rename internal `hvc-*` leftovers (`hvc-seat`, `hvc-seat-desktop`, `C:\ProgramData\hvc-run`) to `openmultiseat`.
 - [ ] Elevated start-up per platform and a requirements document; basic CI (lint + `shellcheck` for `seat.sh`/`setup.sh`).
+
+## Tech stack
+
+| Area | Technology |
+|---|---|
+| App / API | Node.js, Express |
+| Input isolation | usbipd-win (USB/IP), Linux `libinput`, Xorg `dummy` driver, `AutoAddDevices off` |
+| Seat sessions | FreeRDP 3 (`xfreerdp3`), Firefox / Chrome / Edge in kiosk mode, desktop containers (XFCE, MATE, KDE, LXQt, LXDE, Openbox, IceWM, Fluxbox, JWM, i3) |
+| Display | x11vnc + TigerVNC (view-only) through WSLg |
+| Runtime | WSL2, Docker Engine, Windows scheduled tasks (run as the interactive user) |
+| Scripting | Bash (`seat.sh`, `setup.sh`), PowerShell |
+| Planned | Raw Input (Windows), `systemd-logind` seats (Linux), IOKit HID (macOS), Hyper-V / VirtualBox / KVM / VMware backends, USB/IP over the network |
 
 ## License
 
