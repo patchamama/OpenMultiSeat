@@ -1,12 +1,12 @@
-# Dedicated Seat — puestos de trabajo multi-seat
+# OpenMultiSeat — servidor multi-seat universal
 
 Asigna un **teclado y un ratón dedicados** a una sesión concreta (una VM, un navegador en modo kiosk, un escritorio…),
 de forma que esos dispositivos solo controlen esa sesión mientras el resto del equipo sigue usando los suyos.
 El objetivo final es un proyecto **universal e independiente** (Windows, Linux y macOS) que convierta un solo equipo en
 varios puestos de trabajo: **una pantalla + un teclado + un ratón por puesto**, cada uno con el modo que se elija.
 
-Hoy vive dentro del Hyper-V Configurator (`/api/seat`, página `/seat/`), pero la carpeta `seat/` es autónoma y está
-pensada para separarse en su propio repositorio.
+Este proyecto nació dentro del Hyper-V Configurator (`/api/seat`) y ahora es un repositorio independiente. El instalador de ELO
+vive aparte en `elo-stack-installer`; aquí solo queda la idea de que un puesto pueda ser "una VM o un contenedor con ELO".
 
 ## Estado actual (Windows + WSL)
 
@@ -32,7 +32,7 @@ Funciona y está probado con un ratón USB y un teclado USB:
 ### Uso
 
 ```
-cd seat
+cd OpenMultiSeat
 npm install
 start-seat.bat          # pide elevación y abre http://localhost:3100
 ```
@@ -138,7 +138,7 @@ Si se detectan varias pantallas, cada una puede ser un puesto:
 - [x] **Puesto de escritorio en Docker** (`docker/`): imagen `hvc-seat-desktop` (Ubuntu 24.04 + XFCE) con Xorg dummy que solo
       usa los dispositivos pasados con `--device` y VNC de solo lectura en `VNC_PORT`:
       ```
-      docker build -t hvc-seat-desktop seat/docker
+      docker build -t hvc-seat-desktop docker
       docker run -d --name hvc-seat-docker --network host --device /dev/input/event0 --device /dev/input/event1 \
         -v /run/udev:/run/udev:ro -e MOUSE=event0 -e KBD=event1 -e DISPLAY_NUM=3 -e VNC_PORT=5903 hvc-seat-desktop
       DISPLAY=:0 xtigervncviewer -ViewOnly -PreferredEncoding=Raw -AutoSelect=0 127.0.0.1:5903
@@ -180,12 +180,11 @@ clientes de la red con el mismo modelo de "una pantalla + un teclado + un ratón
 - [ ] **Varios monitores como puestos independientes** (un monitor + su teclado/ratón = una máquina) combinado con
       puestos remotos, sin que un puesto vea ni controle a otro.
 
-### 6. Separar el proyecto
+### 6. Cerrar la separación del repositorio
 
-- [ ] Publicar `seat/` (sin `seat/elo/`) como repositorio propio, con `package.json` propio (ya incluido) y sin
-      dependencias del Hyper-V Configurator. Para conservar el historial: `git filter-repo --path seat/ --path-rename seat/:`
-      en un clon nuevo (o copiar los archivos y empezar historial limpio).
-- [ ] Quitar de la interfaz las rutas `/api/seat` del configurador cuando el repositorio ya sea independiente.
+- [x] Repositorio propio con historial conservado y `package.json` propio, sin dependencias del Hyper-V Configurator.
+- [ ] Quitar las rutas `/api/seat` del configurador original cuando se use este repositorio.
+- [ ] Renombrar los restos internos `hvc-*` (`hvc-seat`, `hvc-seat-desktop`, `C:\ProgramData\hvc-run`) a `openmultiseat`.
 - [ ] Instalador/arranque elevado por plataforma y documentación de requisitos.
 - [ ] CI básica (lint + comprobación de sintaxis de `seat.sh`/`setup.sh` con `shellcheck`) y licencia del repositorio.
 - [ ] Nota sobre Interception y otros componentes con licencia no comercial antes de elegir la licencia del proyecto.
