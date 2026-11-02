@@ -4,6 +4,7 @@
   "description": "Dedicated keyboard/mouse seats: assign USB input devices exclusively to an RDP session or kiosk browser (Windows + WSL today).",
   "main": "app.js",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "start": "node app.js"
   },

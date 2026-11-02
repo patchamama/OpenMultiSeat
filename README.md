@@ -187,4 +187,10 @@ clientes de la red con el mismo modelo de "una pantalla + un teclado + un ratón
 - [ ] Renombrar los restos internos `hvc-*` (`hvc-seat`, `hvc-seat-desktop`, `C:\ProgramData\hvc-run`) a `openmultiseat`.
 - [ ] Instalador/arranque elevado por plataforma y documentación de requisitos.
 - [ ] CI básica (lint + comprobación de sintaxis de `seat.sh`/`setup.sh` con `shellcheck`) y licencia del repositorio.
-- [ ] Nota sobre Interception y otros componentes con licencia no comercial antes de elegir la licencia del proyecto.
+- [x] Licencia GPL-3.0-or-later. Interception (licencia no comercial) solo se evalúa como opción externa: no se incluye ni se enlaza; si se adoptara, habría que revisar la compatibilidad.
+
+## Licencia
+
+OpenMultiSeat es software libre bajo la **GNU General Public License v3.0 o posterior** (`GPL-3.0-or-later`, ver [LICENSE](LICENSE)).
+Puedes usarlo, estudiarlo y modificarlo; si distribuyes una versión modificada, debes publicarla bajo la misma licencia con su código fuente.
+Las herramientas externas que instala (usbipd-win, FreeRDP, TigerVNC, Xorg…) conservan sus propias licencias.
