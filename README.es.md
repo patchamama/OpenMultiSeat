@@ -36,7 +36,7 @@ Funciona y está probado con un ratón USB y un teclado USB:
 | `seat.sh` | Puesto dentro de WSL: `start`, `stop`, `status`, `devices`, `check`, `logs`. Se instala en WSL como `hvc-seat`. |
 | `setup.sh` | Paquetes de Linux: Xorg dummy + libinput, x11vnc, TigerVNC, openbox, FreeRDP 3, Firefox (`.deb` de Mozilla), opcionales Chrome/Edge. |
 | `seat-lib.js` | Lado Windows: usbipd (bind/attach/detach), órdenes en la WSL del usuario interactivo mediante una tarea programada, preparar/iniciar/detener, y rutas Express. |
-| `app.js`, `start-seat.bat` | App independiente en `http://localhost:3100` (requiere administrador). |
+| `app.js`, `start.bat` / `start.sh` | App independiente en `http://localhost:3100` (requiere administrador). |
 | `public/index.html` | Interfaz: requisitos, dispositivos, modo (RDP / navegador), iniciar/detener. |
 
 ### Uso
@@ -44,7 +44,8 @@ Funciona y está probado con un ratón USB y un teclado USB:
 ```
 cd OpenMultiSeat
 npm install
-start-seat.bat          # pide elevación y abre http://localhost:3100
+start.bat               # Windows: pide elevación y abre http://localhost:3100
+./start.sh              # Linux / WSL / macOS: misma interfaz (los puestos requieren hoy Windows + WSL)
 ```
 
 La página puede abrirse con datos ya rellenados: `/?target=host:13389&user=SRV01%5Cusuario&pass=...`

@@ -37,7 +37,7 @@ Works and is tested with a USB mouse and a USB keyboard:
 | `seat.sh` | Seat inside WSL: `start`, `stop`, `status`, `devices`, `check`, `logs`. Installed in WSL as `hvc-seat`. |
 | `setup.sh` | Linux packages: Xorg dummy + libinput, x11vnc, TigerVNC, openbox, FreeRDP 3, Firefox (Mozilla `.deb`), optional Chrome/Edge. |
 | `seat-lib.js` | Windows side: usbipd (bind/attach/detach), commands in the interactive user's WSL via a scheduled task, prepare/start/stop, Express routes. |
-| `app.js`, `start-seat.bat` | Standalone app at `http://localhost:3100` (needs administrator rights). |
+| `app.js`, `start.bat` / `start.sh` | Standalone app at `http://localhost:3100` (needs administrator rights). |
 | `public/index.html` | UI: requirements, devices, mode (RDP / browser), start/stop. |
 | `docker/` | Desktop image `hvc-seat-desktop` (Ubuntu 24.04 + choice of desktops). |
 
@@ -46,7 +46,8 @@ Works and is tested with a USB mouse and a USB keyboard:
 ```
 cd OpenMultiSeat
 npm install
-start-seat.bat          # asks for elevation and opens http://localhost:3100
+start.bat               # Windows: asks for elevation and opens http://localhost:3100
+./start.sh              # Linux / WSL / macOS: same UI (seats need Windows + WSL today)
 ```
 
 The page can be opened pre-filled: `/?target=host:13389&user=SRV01%5Cuser&pass=...` (`host` = this Windows as seen from WSL).
