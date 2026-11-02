@@ -1,196 +1,157 @@
-# OpenMultiSeat — servidor multi-seat universal
+# OpenMultiSeat — universal multi-seat server
 
-Asigna un **teclado y un ratón dedicados** a una sesión concreta (una VM, un navegador en modo kiosk, un escritorio…),
-de forma que esos dispositivos solo controlen esa sesión mientras el resto del equipo sigue usando los suyos.
-El objetivo final es un proyecto **universal e independiente** (Windows, Linux y macOS) que convierta un solo equipo en
-varios puestos de trabajo: **una pantalla + un teclado + un ratón por puesto**, cada uno con el modo que se elija.
+🇪🇸 [Leer en español](README.es.md)
 
-Este proyecto nació dentro del Hyper-V Configurator (`/api/seat`) y ahora es un repositorio independiente. El instalador de ELO
-vive aparte en `elo-stack-installer`; aquí solo queda la idea de que un puesto pueda ser "una VM o un contenedor con ELO".
+Assign a **dedicated keyboard and mouse** to one specific session (a VM, a kiosk browser, a desktop…) so those devices only
+control that session while the rest of the computer keeps using its own. The end goal is a **universal, independent project**
+(Windows, Linux and macOS) that turns one computer into several workstations: **one screen + one keyboard + one mouse per
+seat**, each seat running whatever mode you choose.
 
-## Estado actual (Windows + WSL)
+This project started inside the Hyper-V Configurator (`/api/seat`) and is now an independent repository. The ELO installer lives
+separately in [`elo-stack-installer`](https://github.com/patchamama/elo-stack-installer); here we only keep the idea that a seat
+can be "a VM or container running ELO" like any other.
 
-Funciona y está probado con un ratón USB y un teclado USB:
+## Current state (Windows + WSL)
 
-1. **usbipd-win** desconecta los dispositivos USB elegidos de Windows y los conecta a la distro WSL del usuario.
-2. En WSL, `seat.sh` arranca un **Xorg sobre una pantalla virtual** (`dummy`) cuya **única entrada** son esos
-   dispositivos (`libinput`, `AutoAddDevices off`).
-3. Dentro corre una **sesión RDP** a una VM (`xfreerdp3`), un **navegador en modo kiosk** (Firefox; Chrome/Edge opcionales)
-   o, en modo Docker, un **contenedor con escritorio** (Ubuntu + XFCE) que recibe solo esos dispositivos.
-4. La imagen se muestra en el escritorio de Windows con un **visor VNC de solo lectura** (x11vnc + TigerVNC vía WSLg),
-   así que el teclado y el ratón de Windows no pueden actuar sobre ella. El cursor se pinta en la imagen.
-5. Al detener el puesto, los dispositivos vuelven a Windows.
+Works and is tested with a USB mouse and a USB keyboard:
 
-| Archivo | Función |
+1. **usbipd-win** detaches the chosen USB devices from Windows and attaches them to the user's WSL distro.
+2. Inside WSL, `seat.sh` starts an **Xorg server on a virtual screen** (`dummy`) whose **only input** is those devices
+   (`libinput`, `AutoAddDevices off`).
+3. Inside it runs an **RDP session** to a VM (`xfreerdp3`), a **kiosk browser** (Firefox; Chrome/Edge optional) or, in Docker mode,
+   a **container with a desktop** (Ubuntu + XFCE) that receives only those devices.
+4. The image is shown on the Windows desktop with a **view-only VNC viewer** (x11vnc + TigerVNC through WSLg), so the Windows
+   keyboard and mouse cannot act on it. The cursor is painted into the image.
+5. When the seat stops, the devices go back to Windows.
+
+| File | Purpose |
 |---|---|
-| `seat.sh` | Puesto dentro de WSL: `start`, `stop`, `status`, `devices`, `check`, `logs`. Se instala en WSL como `hvc-seat`. |
-| `setup.sh` | Paquetes de Linux: Xorg dummy + libinput, x11vnc, TigerVNC, openbox, FreeRDP 3, Firefox (`.deb` de Mozilla), opcionales Chrome/Edge. |
-| `seat-lib.js` | Lado Windows: usbipd (bind/attach/detach), órdenes en la WSL del usuario interactivo mediante una tarea programada, preparar/iniciar/detener, y rutas Express. |
-| `app.js`, `start-seat.bat` | App independiente en `http://localhost:3100` (requiere administrador). |
-| `public/index.html` | Interfaz: requisitos, dispositivos, modo (RDP / navegador), iniciar/detener. |
+| `seat.sh` | Seat inside WSL: `start`, `stop`, `status`, `devices`, `check`, `logs`. Installed in WSL as `hvc-seat`. |
+| `setup.sh` | Linux packages: Xorg dummy + libinput, x11vnc, TigerVNC, openbox, FreeRDP 3, Firefox (Mozilla `.deb`), optional Chrome/Edge. |
+| `seat-lib.js` | Windows side: usbipd (bind/attach/detach), commands in the interactive user's WSL via a scheduled task, prepare/start/stop, Express routes. |
+| `app.js`, `start-seat.bat` | Standalone app at `http://localhost:3100` (needs administrator rights). |
+| `public/index.html` | UI: requirements, devices, mode (RDP / browser), start/stop. |
+| `docker/` | Desktop image `hvc-seat-desktop` (Ubuntu 24.04 + choice of desktops). |
 
-### Uso
+### Usage
 
 ```
 cd OpenMultiSeat
 npm install
-start-seat.bat          # pide elevación y abre http://localhost:3100
+start-seat.bat          # asks for elevation and opens http://localhost:3100
 ```
 
-La página puede abrirse con datos ya rellenados: `/?target=host:13389&user=SRV01%5Cusuario&pass=...`
-(`host` = este Windows visto desde WSL).
+The page can be opened pre-filled: `/?target=host:13389&user=SRV01%5Cuser&pass=...` (`host` = this Windows as seen from WSL).
 
-### Limitaciones conocidas
+### Known limitations
 
-- **Solo dispositivos USB.** usbipd no puede pasar un dispositivo Bluetooth suelto, solo el adaptador entero, y el kernel
-  de WSL no trae el driver de adaptadores MediaTek (`BT_HCIBTUSB_MTK`). Los teclados/ratones internos del portátil
-  tampoco se pueden pasar.
-- **WSL en modo `mirrored`** no puede alcanzar el servicio usbipd del host en este equipo (VPN); `prepare` cambia a `nat`
-  (con copia `.wslconfig.bak-hvc`).
-- **Cada usuario de Windows tiene su propia VM de WSL**: los comandos se ejecutan como el usuario con sesión iniciada
-  mediante una tarea programada, aunque la app corra elevada con otra cuenta. Cada operación tarda 10-30 s por ello.
-- **Rendimiento:** la imagen pasa por VNC local; en modo navegador con Guacamole hay doble escritorio remoto. Para VMs
-  conviene el modo RDP directo.
-- **Fallos transitorios:** en algún momento las órdenes lanzadas como el usuario interactivo no devolvieron salida; los
-  permisos de `C:\ProgramData\hvc-run` son correctos y volvió a funcionar sin cambios. Si se repite, reintentar.
+- **USB devices only.** usbipd cannot pass a single Bluetooth device, only the whole adapter, and the WSL kernel lacks the
+  MediaTek adapter driver (`BT_HCIBTUSB_MTK`). Built-in laptop keyboards and touchpads cannot be passed either.
+- **WSL in `mirrored` mode** cannot reach the host's usbipd service on some networks (VPN); `prepare` switches to `nat`
+  (with a `.wslconfig.bak-hvc` copy).
+- **Every Windows user has their own WSL VM:** commands run as the signed-in user through a scheduled task, even if the app runs
+  elevated under another account. Each operation therefore takes 10-30 s.
+- **Performance:** the image goes through local VNC; browser mode with Guacamole means a double remote desktop. For VMs the
+  direct RDP mode is better.
+- **Transient failures:** at times commands launched as the interactive user returned no output and worked again without
+  changes. Retry if it happens.
 
-## Pendiente / hoja de ruta
+## Docker seats
 
-### 1. Puestos en Windows sin software de terceros (descartado MouseMux)
+A desktop container receives only the devices passed with `--device`, with a view-only VNC on `VNC_PORT`:
 
-Se evaluó **MouseMux V3** (un cursor y foco por pareja ratón/teclado, bloqueo por ventana o pantalla). Se **descartó**:
-es software comercial (aviso de compra y 3 días de prueba; el bloqueo por ventana es función Pro) y no se quiere depender
-de él. Se desinstaló.
+```
+docker build -t hvc-seat-desktop docker
+docker run -d --name hvc-seat-docker --network host --device /dev/input/event0 --device /dev/input/event1 \
+  -v /run/udev:/run/udev:ro -e MOUSE=event0 -e KBD=event1 -e DISPLAY_NUM=3 -e VNC_PORT=5903 hvc-seat-desktop
+DISPLAY=:0 xtigervncviewer -ViewOnly -PreferredEncoding=Raw -AutoSelect=0 127.0.0.1:5903
+```
 
-La alternativa propia para Windows, sin WSL y con soporte de **Bluetooth**, es un enrutador de entrada con Raw Input
-(ver "Universal" más abajo):
+The UI's "Desktop container (Docker)" mode checks Docker Engine and the image in the distro, installs/builds what is missing,
+starts the container `hvc-seat-<display>` and removes it on stop. The desktop is selectable (tag
+`hvc-seat-desktop:<desktop>`, built on first use):
 
-- [ ] Leer la entrada con Raw Input (`RegisterRawInputDevices` + `WM_INPUT`), que identifica el dispositivo de cada evento.
-- [ ] Ventana a pantalla completa por puesto que reciba solo los eventos de sus dispositivos (un cliente RDP/VNC o un
-      navegador embebido dibujando en ella).
-- [ ] Limitación a resolver: Windows sigue entregando esa entrada también al sistema; habría que filtrarla con un hook de
-      bajo nivel (`WH_KEYBOARD_LL` / `WH_MOUSE_LL`, que no indica el dispositivo) o con un driver de filtro.
+| Type | Desktops |
+|---|---|
+| Full | XFCE, MATE, KDE Plasma, GNOME Flashback (GNOME Shell needs 3D, which the virtual screen lacks) |
+| Light | LXQt, LXDE |
+| Window managers (very light) | Openbox + tint2, IceWM, Fluxbox, JWM, i3 (tiling, keyboard driven) |
 
-Proyectos libres para capturar y redirigir la entrada por dispositivo (a evaluar):
+A custom image also works if it follows the same contract: `MOUSE`, `KBD`, `DISPLAY_NUM`, `VNC_PORT`, `SEAT_W`, `SEAT_H`.
 
-| Plataforma | Proyecto | Uso |
-|---|---|---|
-| Windows | `oblitum/Interception` | Driver de filtro + librería: identifica cada teclado/ratón, bloquea sus eventos y permite reenviarlos. Licencia gratuita no comercial (comercial aparte). |
-| Windows | `evilC/AutoHotInterception` | AutoHotkey sobre Interception: suscribirse a un dispositivo, bloquearlo y enviar a una ventana (`ControlSend`/`ControlClick`). |
-| Windows | LuaMacros | Distingue teclados por dispositivo (macros); limitado con ratones. |
-| Linux | interception-tools, evsieve, keyd | Captura exclusiva (`EVIOCGRAB`) y reemisión por `uinput`. |
-| macOS | Karabiner-Elements | Reglas por dispositivo (open source). |
-| Multiplataforma | Kanata | Remapeo por dispositivo (en Windows con el driver Interception). |
-| Entre equipos | Input Leap (antes Barrier) | Compartir teclado/ratón entre máquinas. |
+## Roadmap
 
-### 2. Varios puestos con varias pantallas
+### 1. Windows seats without third-party software
 
-Si se detectan varias pantallas, cada una puede ser un puesto:
+MouseMux V3 was evaluated and **discarded** (commercial, per-window locking is a Pro feature). The
+own alternative for Windows, without WSL and with **Bluetooth** support, is an input router built on Raw Input:
 
-- [x] Detectar monitores (`seat.sh monitors`: los monitores de Windows tal como los expone WSLg) y elegir por puesto
-      **"Screen"**: ventana 1280×800 o **pantalla completa en un monitor**, con la pantalla virtual del puesto a la
-      resolución de ese monitor (modeline con `cvt`; también en el contenedor vía `SEAT_W`/`SEAT_H`).
-- [x] **Varios puestos a la vez** (Seat 2-5, display `:N`; los contenedores usan `:N+20`), cada uno con sus dispositivos;
-      un dispositivo solo puede pertenecer a un puesto. Detener por puesto.
-- [ ] Verificar con el usuario en qué monitor físico aparece cada índice de WSLg (la numeración de WSLg no coincide con
-      la de Windows) y etiquetarlos mejor.
-- [ ] Asistente guiado: **pantalla → teclado + ratón → modo** y perfiles guardados para arrancar varios puestos juntos.
-- [ ] Modos por puesto:
-  - **WSL** — puesto Xorg actual; el visor a pantalla completa en el monitor elegido
-    (`xtigervncviewer -FullScreen -FullScreenMode=Selected -FullScreenSelectedMonitors=N`).
-  - **Docker** — contenedor con Xorg/escritorio (p. ej. `linuxserver/webtop`) recibiendo los dispositivos (`--device`) en
-    la misma VM de WSL del usuario (Docker dentro de su Ubuntu).
-  - **Escritorio nativo de Windows** — enrutador de entrada propio (Raw Input) limitado a ese monitor.
-  - **Navegador** — Chrome/Edge/Firefox en `--kiosk` en ese monitor (Windows nativo o WSL).
-  - **VM de Hyper-V** — RDP/VMConnect a pantalla completa en ese monitor (RDP con contraseña cifrada para el usuario, sesión
-    nueva o existente).
-  - **VM de VirtualBox** — `VBoxManage startvm --type gui` a pantalla completa; VirtualBox permite **filtros USB** para
-    pasar el teclado/ratón a la VM de forma exclusiva, sin usbipd.
-- [ ] Guardar configuraciones de puestos y arrancarlas juntas (perfil "aula" / "oficina").
+- [ ] Read input with Raw Input (`RegisterRawInputDevices` + `WM_INPUT`), which identifies the device behind each event.
+- [ ] One fullscreen window per seat that receives only its devices' events (an RDP/VNC client or an embedded browser).
+- [ ] Open problem: Windows keeps delivering that input to the system too; it has to be filtered with a low-level hook
+      (`WH_KEYBOARD_LL` / `WH_MOUSE_LL`, which do not name the device) or a filter driver.
 
-### 3. Universal: Linux y macOS
+Free projects to capture and redirect input per device (to evaluate): Interception and AutoHotInterception (Windows; the
+Interception driver is non-commercial), LuaMacros, interception-tools / evsieve / keyd (Linux), Karabiner-Elements (macOS),
+Kanata, Input Leap (between computers).
 
-- [ ] **Linux nativo:** multi-seat real con `systemd-logind` (`loginctl attach seatN <dispositivo>`), un compositor por
-      puesto (p. ej. `cage` o Weston en kiosk) con su salida de vídeo y su entrada filtrada por libinput. Con una sola GPU y
-      varias salidas: un compositor por salida (o Xorg con un `ServerLayout` por pantalla) en lugar de seats de logind.
-- [ ] **macOS:** no tiene multi-seat. Alternativa: app que **capture en exclusiva** un teclado/ratón concretos con IOKit
-      (`IOHIDManager` + `kIOHIDOptionsTypeSeizeDevice`) y los reenvíe a una sesión que dibuja a pantalla completa en un
-      monitor (cliente RDP/VNC/navegador embebido).
-- [ ] **Windows sin WSL:** enrutador de entrada propio con Raw Input (identifica el dispositivo de cada evento) y una
-      ventana a pantalla completa por monitor.
-- [ ] Núcleo común multiplataforma (Node/Electron o Tauri) con "backends" por sistema: `wsl`, `docker`, `native`,
-      `browser`, `hyperv`, `virtualbox`, `logind`, `iokit`.
+### 2. Several seats with several screens
 
-- [ ] **Máquinas virtuales invitadas de cualquier sistema** como contenido de un puesto, no solo Windows:
-  - Windows (probado con WSL/RDP), **distros Linux** (Ubuntu, Debian, Fedora, openSUSE…; acceso por RDP/VNC/SPICE o
-    consola de la VM a pantalla completa) y **macOS** (solo sobre hardware Apple por la licencia de Apple; en otros
-    equipos queda fuera del alcance).
-  - Hipervisores objetivo: Hyper-V, VirtualBox, KVM/QEMU (libvirt), VMware y WSL/Docker. Un `backend` por hipervisor con la
-    misma interfaz: `listVMs`, `start`, `stop`, `attachInput(dispositivos)`, `showFullscreen(monitor)`.
-- [ ] **Detección del invitado:** al elegir una VM, reconocer su SO y ofrecer el modo adecuado (RDP para Windows, SPICE/VNC
-      para Linux, consola de VirtualBox/KVM para el resto).
+- [x] Detect monitors (`seat.sh monitors`) and choose a **"Screen"** per seat: a 1280×800 window or **fullscreen on one
+      monitor**, with the seat's virtual screen at that monitor's resolution.
+- [x] **Several seats at once** (Seat 2-5, display `:N`; containers use `:N+20`), each with its own devices; a device belongs to
+      one seat only. Stop per seat.
+- [ ] Verify with the user which physical monitor each WSLg index is (WSLg numbering differs from Windows) and label them.
+- [ ] Guided wizard: **screen → keyboard + mouse → mode**, and saved profiles to start several seats together ("classroom" /
+      "office").
+- [ ] Per-seat modes: **WSL** (current), **Docker**, **native Windows desktop** (own Raw Input router limited to that monitor),
+      **browser kiosk**, **Hyper-V VM** (RDP/VMConnect fullscreen), **VirtualBox VM** (`VBoxManage startvm --type gui` with USB
+      filters to pass the devices exclusively, no usbipd).
 
-### 4. Contenedores
+### 3. Universal: Linux and macOS
 
-- [x] Docker Engine dentro de la Ubuntu del usuario (no Docker Desktop de otra cuenta: cada usuario de Windows tiene su
-      propia VM de WSL y solo esa ve los USB conectados con usbipd). Incompatible con activar a la vez la integración de
-      Docker Desktop para esa distro.
-- [x] **Puesto de escritorio en Docker** (`docker/`): imagen `hvc-seat-desktop` (Ubuntu 24.04 + XFCE) con Xorg dummy que solo
-      usa los dispositivos pasados con `--device` y VNC de solo lectura en `VNC_PORT`:
-      ```
-      docker build -t hvc-seat-desktop docker
-      docker run -d --name hvc-seat-docker --network host --device /dev/input/event0 --device /dev/input/event1 \
-        -v /run/udev:/run/udev:ro -e MOUSE=event0 -e KBD=event1 -e DISPLAY_NUM=3 -e VNC_PORT=5903 hvc-seat-desktop
-      DISPLAY=:0 xtigervncviewer -ViewOnly -PreferredEncoding=Raw -AutoSelect=0 127.0.0.1:5903
-      ```
-- [x] Modo Docker integrado en la interfaz ("Desktop container (Docker)"): al iniciar comprueba Docker Engine y la imagen
-      en la distro y, si falta algo, instala Docker Engine (repositorio oficial) y construye la imagen antes de arrancar
-      el contenedor `hvc-seat-<display>`; al detener se elimina el contenedor y los dispositivos vuelven a Windows.
-      También instalable desde "Install / repair requirements" (`setup.sh docker=<contexto>`).
-- [x] **Elección de escritorio** en el modo Docker: cada escritorio es una etiqueta `hvc-seat-desktop:<desktop>`
-      (`--build-arg DESKTOP=`), construida la primera vez que se usa:
-      | Tipo | Escritorios |
-      |---|---|
-      | Completos | XFCE, MATE, KDE Plasma, GNOME Flashback (GNOME Shell requiere 3D y la pantalla virtual no lo tiene) |
-      | Ligeros | LXQt, LXDE |
-      | Gestores de ventanas (muy ligeros) | Openbox + tint2, IceWM, Fluxbox, JWM, i3 (mosaico, por teclado) |
-      También se puede indicar una **imagen propia** (debe existir en la distro y usar el mismo contrato: `MOUSE`, `KBD`,
-      `DISPLAY_NUM`, `VNC_PORT`, `SEAT_W`, `SEAT_H`).
-- [ ] Contenedor con escritorio accesible por navegador (`linuxserver/webtop`) como alternativa sin dispositivos dedicados.
-- [x] **ELO en contenedores:** resuelto, pero **no pertenece a este proyecto**. Vive en `seat/elo/` (asistente web para
-      instalar ELO en Docker, Hyper-V, VirtualBox y WSL) y se publica como repositorio propio. Aquí solo queda la idea de
-      que un puesto pueda ser "una VM/contenedor con ELO" como cualquier otro.
+- [ ] **Native Linux:** real multi-seat with `systemd-logind` (`loginctl attach seatN <device>`), one compositor per seat (e.g.
+      `cage` or Weston in kiosk) with its own video output and libinput-filtered input. With a single GPU and several outputs: one
+      compositor per output (or Xorg with a `ServerLayout` per screen).
+- [ ] **macOS:** has no multi-seat. Alternative: an app that **exclusively captures** chosen keyboard/mouse with IOKit
+      (`IOHIDManager` + `kIOHIDOptionsTypeSeizeDevice`) and forwards them to a session drawn fullscreen on one monitor.
+- [ ] **Windows without WSL:** own input router (Raw Input) and a fullscreen window per monitor.
+- [ ] Common cross-platform core (Node/Electron or Tauri) with per-OS backends: `wsl`, `docker`, `native`, `browser`, `hyperv`,
+      `virtualbox`, `logind`, `iokit`.
+- [ ] **Virtual machines of any guest OS** as seat content, not just Windows: Windows (tested with WSL/RDP), **Linux distros**
+      (Ubuntu, Debian, Fedora, openSUSE… via RDP/VNC/SPICE or the VM console fullscreen) and **macOS** (only on Apple hardware,
+      per Apple's license). Target hypervisors: Hyper-V, VirtualBox, KVM/QEMU (libvirt), VMware, WSL/Docker, behind one backend
+      interface: `listVMs`, `start`, `stop`, `attachInput(devices)`, `showFullscreen(monitor)`.
+- [ ] **Guest detection:** recognise the VM's OS and offer the right mode (RDP for Windows, SPICE/VNC for Linux, the
+      VirtualBox/KVM console otherwise).
 
-### 5. Multi-seat en red
+### 4. Network multi-seat
 
-Un puesto no tiene por qué estar en la misma máquina física que el servidor. Objetivo: que el servidor reparta puestos a
-clientes de la red con el mismo modelo de "una pantalla + un teclado + un ratón = una máquina aparte".
+A seat does not have to be on the same physical machine as the server. Goal: the server hands out seats to clients on the
+network with the same model, "one screen + one keyboard + one mouse = a separate machine".
 
-- [ ] **Puesto remoto:** cliente ligero (PC viejo, Raspberry Pi, portátil) que se conecta a un puesto del servidor por
-      RDP / VNC / SPICE / Sunshine+Moonlight y envía **solo su** teclado y ratón. El servidor no mezcla esa entrada con la de
-      los puestos locales.
-- [ ] **USB/IP:** exportar los dispositivos de un cliente al servidor (`usbip` en Linux, `usbipd-win` en Windows) para que
-      ese ratón/teclado remoto se comporte como local y pueda asignarse a un puesto.
-- [ ] **Modelo de acceso "permisible":** lista de dispositivos y clientes autorizados por puesto (por MAC/ID de
-      dispositivo o clave), con modos **exclusivo** (solo ese dispositivo manda en el puesto) e **inclusivo/compartido** (varios
-      dispositivos controlan el mismo puesto, p. ej. un puesto con ratón local y otro remoto).
-- [ ] **Seguridad:** autenticación de clientes (clave o certificado), cifrado (SSH/TLS/WireGuard), nada expuesto por
-      defecto; la interfaz web solo en `localhost` o tras autenticación.
-- [ ] **Descubrimiento:** anunciar los puestos libres en la LAN (mDNS) y permitir reservarlos desde el cliente.
-- [ ] **Varios monitores como puestos independientes** (un monitor + su teclado/ratón = una máquina) combinado con
-      puestos remotos, sin que un puesto vea ni controle a otro.
+- [ ] **Remote seat:** a thin client (old PC, Raspberry Pi, laptop) connects to a seat over RDP / VNC / SPICE / Sunshine+Moonlight
+      and sends **only its own** keyboard and mouse; the server never mixes it with local seats' input.
+- [ ] **USB/IP:** export a client's devices to the server (`usbip` on Linux, `usbipd-win` on Windows) so that remote mouse/keyboard
+      behave as local and can be assigned to a seat.
+- [ ] **Access model:** per-seat allow-list of devices and clients (by MAC/device ID or key) with an **exclusive** mode (only that
+      device drives the seat) and an **inclusive/shared** mode (several devices control the same seat).
+- [ ] **Security:** client authentication (key or certificate), encryption (SSH/TLS/WireGuard), nothing exposed by default; the web
+      UI only on `localhost` or behind authentication.
+- [ ] **Discovery:** announce free seats on the LAN (mDNS) and let clients reserve them.
+- [ ] **Several monitors as independent seats** (one monitor + its keyboard/mouse = one machine) combined with remote seats, with
+      no seat seeing or controlling another.
 
-### 6. Cerrar la separación del repositorio
+### 5. Project housekeeping
 
-- [x] Repositorio propio con historial conservado y `package.json` propio, sin dependencias del Hyper-V Configurator.
-- [ ] Quitar las rutas `/api/seat` del configurador original cuando se use este repositorio.
-- [ ] Renombrar los restos internos `hvc-*` (`hvc-seat`, `hvc-seat-desktop`, `C:\ProgramData\hvc-run`) a `openmultiseat`.
-- [ ] Instalador/arranque elevado por plataforma y documentación de requisitos.
-- [ ] CI básica (lint + comprobación de sintaxis de `seat.sh`/`setup.sh` con `shellcheck`) y licencia del repositorio.
-- [x] Licencia GPL-3.0-or-later. Interception (licencia no comercial) solo se evalúa como opción externa: no se incluye ni se enlaza; si se adoptara, habría que revisar la compatibilidad.
+- [x] Own repository with its history, own `package.json`, no dependency on the Hyper-V Configurator.
+- [x] GPL-3.0-or-later license.
+- [ ] Remove the `/api/seat` routes from the original configurator once this repository is used.
+- [ ] Rename internal `hvc-*` leftovers (`hvc-seat`, `hvc-seat-desktop`, `C:\ProgramData\hvc-run`) to `openmultiseat`.
+- [ ] Elevated start-up per platform and a requirements document; basic CI (lint + `shellcheck` for `seat.sh`/`setup.sh`).
 
-## Licencia
+## License
 
-OpenMultiSeat es software libre bajo la **GNU General Public License v3.0 o posterior** (`GPL-3.0-or-later`, ver [LICENSE](LICENSE)).
-Puedes usarlo, estudiarlo y modificarlo; si distribuyes una versión modificada, debes publicarla bajo la misma licencia con su código fuente.
-Las herramientas externas que instala (usbipd-win, FreeRDP, TigerVNC, Xorg…) conservan sus propias licencias.
+OpenMultiSeat is free software under the **GNU General Public License v3.0 or later** (`GPL-3.0-or-later`, see
+[LICENSE](LICENSE)). You can use, study and modify it; if you distribute a modified version you must publish it under the same
+license with its source code. The external tools it installs (usbipd-win, FreeRDP, TigerVNC, Xorg…) keep their own licenses.
